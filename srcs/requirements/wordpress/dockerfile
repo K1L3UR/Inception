@@ -1,0 +1,43 @@
+FROM debian:bullseye
+
+RUN apt update
+RUN apt upgrade
+RUN apt-get -y install wget
+RUN apt-get -y install vim
+RUN apt-get install -y php7.4\
+    php-fpm\
+    php-mysql\
+    mariadb-client
+
+RUN wget https://fr.wordpress.org/wordpress-6.0-fr_FR.tar.gz -P /var/www
+
+RUN cd /var/www && tar -xzf wordpress-6.0-fr_FR.tar.gz && rm wordpress-6.0-fr_FR.tar.gz
+
+# Passer en root avant de modifier les droits
+# USER root
+
+# Changer le propriétaire et les permissions du répertoire WordPress en utilisant l'utilisateur root
+RUN chown -R root:root /var/www/wordpress && chmod -R 777 /var/www/wordpress
+
+# Install le CLI qui facilite l'instalation du wp-config.php
+RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+
+# Donne les droits et place wordpress en dans le dossier executable
+RUN chmod +x wp-cli.phar
+RUN mv wp-cli.phar /usr/local/bin/wp
+
+COPY    ./conf/www.conf    /etc/php/7.4/fpm/pool.d/www.conf
+COPY    ./conf/auto_config.sh  ./
+
+USER root
+
+RUN chmod 777 /auto_config.sh
+# RUN chown -R ./conf/auto_config.sh
+# RUN chmod +x ./auto_config.sh
+
+EXPOSE 9000
+
+ENTRYPOINT [ "bash", "auto_config.sh" ]
+
+# commande de mise en place pour effectuer un sh d'installation
+# ENTRYPOINT [ "bash", "auto_config.sh" ]
